@@ -37,16 +37,20 @@ public class DemandeController {
     @PostMapping("/demandes")
     public ResponseEntity<DemandeReponse> creer(UsagerCourant usager, @Valid @RequestBody CreerDemandeRequete requete) {
         DemandeActe d = service.creer(usager.id(), requete.typeActe(), requete.nombreCopies());
-        return ResponseEntity.created(URI.create("/api/demandes/" + d.getId())).body(DemandeReponse.de(d));
+        return ResponseEntity.created(URI.create("/api/demandes/" + d.getId())).body(versReponse(d));
     }
 
     @GetMapping("/demandes")
     public List<DemandeReponse> lister(UsagerCourant usager) {
-        return service.lister(usager.id()).stream().map(DemandeReponse::de).toList();
+        return service.lister(usager.id()).stream().map(this::versReponse).toList();
     }
 
     @GetMapping("/demandes/{id}")
     public DemandeReponse consulter(UsagerCourant usager, @PathVariable UUID id) {
-        return DemandeReponse.de(service.consulter(usager.id(), id));
+        return versReponse(service.consulter(usager.id(), id));
+    }
+
+    private DemandeReponse versReponse(DemandeActe d) {
+        return DemandeReponse.de(d, service.statut(d.getId()));
     }
 }

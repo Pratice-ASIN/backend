@@ -8,15 +8,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import bj.timbre.paiement.commun.ErreurMetier;
+import bj.timbre.paiement.paiement.PaiementRepository;
+import bj.timbre.paiement.paiement.StatutPaiement;
 
 @Service
 public class DemandeService {
 
     private final DemandeActeRepository demandes;
+    private final PaiementRepository paiements;
     private final Clock clock;
 
-    public DemandeService(DemandeActeRepository demandes, Clock clock) {
+    public DemandeService(DemandeActeRepository demandes, PaiementRepository paiements, Clock clock) {
         this.demandes = demandes;
+        this.paiements = paiements;
         this.clock = clock;
     }
 
@@ -34,5 +38,13 @@ public class DemandeService {
     @Transactional(readOnly = true)
     public List<DemandeActe> lister(String usagerId) {
         return demandes.findByUsagerIdOrderByCreeLeDesc(usagerId);
+    }
+
+    /** Déduit du seul paiement actif (EN_COURS ou REUSSI) de la demande, s'il existe. */
+    @Transactional(readOnly = true)
+    public StatutDemande statut(UUID demandeId) {
+        return paiements.findByDemandeVerrou(demandeId)
+                .map(p -> p.getStatut() == StatutPaiement.REUSSI ? StatutDemande.PAYEE : StatutDemande.PAIEMENT_EN_COURS)
+                .orElse(StatutDemande.A_PAYER);
     }
 }
