@@ -1,22 +1,41 @@
 package bj.taxstamp.payment.request;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 /**
- * Types d'actes et tarifs unitaires du timbre fiscal (en FCFA).
+ * Type d'acte et tarif unitaire du timbre fiscal (en FCFA), stocké en base et
+ * alimenté au démarrage par {@link DocumentTypeSeeder}.
  * Les montants sont des entiers : le FCFA n'a pas de subdivision, on évite
  * ainsi toute erreur d'arrondi liée aux nombres à virgule.
  */
-public enum DocumentType {
-
-    BIRTH_CERTIFICATE("Acte de naissance", 1000),
-    CRIMINAL_RECORD("Casier judiciaire", 1500),
-    RESIDENCE_CERTIFICATE("Certificat de résidence", 500);
+@Entity
+@Table(name = "document_type")
+public class DocumentType {
 
     public static final long SERVICE_FEE = 100;
 
-    private final String label;
-    private final long unitPrice;
+    /** Code stable exposé par l'API (ex. BIRTH_CERTIFICATE). */
+    @Id
+    @Column(name = "code", length = 40)
+    private String code;
 
-    DocumentType(String label, long unitPrice) {
+    @Column(name = "label", nullable = false, length = 120)
+    private String label;
+
+    @Column(name = "unit_price", nullable = false)
+    private long unitPrice;
+
+    protected DocumentType() {
+    }
+
+    public DocumentType(String code, String label, long unitPrice) {
+        if (unitPrice < 0) {
+            throw new IllegalArgumentException("Le tarif unitaire ne peut pas être négatif");
+        }
+        this.code = code;
         this.label = label;
         this.unitPrice = unitPrice;
     }
@@ -27,6 +46,10 @@ public enum DocumentType {
             throw new IllegalArgumentException("Le nombre de copies doit être au moins 1");
         }
         return Math.addExact(Math.multiplyExact(unitPrice, copies), SERVICE_FEE);
+    }
+
+    public String getCode() {
+        return code;
     }
 
     public String getLabel() {

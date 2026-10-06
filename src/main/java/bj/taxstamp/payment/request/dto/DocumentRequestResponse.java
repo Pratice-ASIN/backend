@@ -9,7 +9,7 @@ import bj.taxstamp.payment.request.DocumentType;
 
 public record DocumentRequestResponse(
         UUID id,
-        DocumentType documentType,
+        String documentType,
         String documentLabel,
         int copies,
         long unitPrice,
@@ -22,10 +22,10 @@ public record DocumentRequestResponse(
     public static DocumentRequestResponse from(DocumentRequest d, DocumentRequestStatus status) {
         return new DocumentRequestResponse(
                 d.getId(),
-                d.getDocumentType(),
+                d.getDocumentType().getCode(),
                 d.getDocumentType().getLabel(),
                 d.getCopies(),
-                d.getDocumentType().getUnitPrice(),
+                d.getUnitPrice(),
                 DocumentType.SERVICE_FEE,
                 d.getAmount(),
                 "XOF",

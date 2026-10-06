@@ -5,10 +5,10 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
@@ -22,12 +22,16 @@ public class DocumentRequest {
     @Column(name = "user_id", nullable = false, length = 64)
     private String userId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "document_type", nullable = false, length = 40)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "document_type", nullable = false)
     private DocumentType documentType;
 
     @Column(name = "copies", nullable = false)
     private int copies;
+
+    /** Tarif figé à la création : un changement de tarif ne touche pas les demandes existantes. */
+    @Column(name = "unit_price", nullable = false)
+    private long unitPrice;
 
     /** Montant figé à la création, calculé par le service. */
     @Column(name = "amount", nullable = false)
@@ -48,6 +52,7 @@ public class DocumentRequest {
         d.userId = userId;
         d.documentType = documentType;
         d.copies = copies;
+        d.unitPrice = documentType.getUnitPrice();
         d.amount = documentType.amountDue(copies);
         d.createdAt = now;
         return d;
@@ -67,6 +72,10 @@ public class DocumentRequest {
 
     public int getCopies() {
         return copies;
+    }
+
+    public long getUnitPrice() {
+        return unitPrice;
     }
 
     public long getAmount() {

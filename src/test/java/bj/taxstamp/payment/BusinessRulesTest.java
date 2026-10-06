@@ -22,22 +22,30 @@ import bj.taxstamp.payment.payment.PhoneNumber;
 /** Tests unitaires des règles de gestion, sans Spring. */
 class BusinessRulesTest {
 
-    @ParameterizedTest(name = "{0} x {1} = {2} FCFA")
+    private static final DocumentType BIRTH_CERTIFICATE = new DocumentType("BIRTH_CERTIFICATE", "Acte de naissance", 1000);
+    private static final DocumentType CRIMINAL_RECORD = new DocumentType("CRIMINAL_RECORD", "Casier judiciaire", 1500);
+
+    @ParameterizedTest(name = "{1} x {0} FCFA + frais = {2} FCFA")
     @CsvSource({
-            "BIRTH_CERTIFICATE,       1, 1100",
-            "BIRTH_CERTIFICATE,       3, 3100",
-            "CRIMINAL_RECORD,    1, 1600",
-            "CRIMINAL_RECORD,    2, 3100",
-            "RESIDENCE_CERTIFICATE, 1, 600",
-            "RESIDENCE_CERTIFICATE, 4, 2100"
+            "1000, 1, 1100",
+            "1000, 3, 3100",
+            "1500, 1, 1600",
+            "1500, 2, 3100",
+            " 500, 1, 600",
+            " 500, 4, 2100"
     })
-    void amount_is_unit_price_times_copies_plus_fee(DocumentType type, int copies, long expected) {
-        assertThat(type.amountDue(copies)).isEqualTo(expected);
+    void amount_is_unit_price_times_copies_plus_fee(long unitPrice, int copies, long expected) {
+        assertThat(new DocumentType("X", "x", unitPrice).amountDue(copies)).isEqualTo(expected);
     }
 
     @Test
     void zero_copies_forbidden() {
-        assertThatThrownBy(() -> DocumentType.BIRTH_CERTIFICATE.amountDue(0)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> BIRTH_CERTIFICATE.amountDue(0)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void negative_unit_price_forbidden() {
+        assertThatThrownBy(() -> new DocumentType("X", "x", -1)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @ParameterizedTest
@@ -87,7 +95,7 @@ class BusinessRulesTest {
     }
 
     private static Payment newPayment() {
-        DocumentRequest request = DocumentRequest.create("alice", DocumentType.CRIMINAL_RECORD, 2, Instant.now());
+        DocumentRequest request = DocumentRequest.create("alice", CRIMINAL_RECORD, 2, Instant.now());
         return Payment.create(request, "alice", "0197123456", MobileOperator.MTN, null, Instant.now());
     }
 }

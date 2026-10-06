@@ -1,7 +1,6 @@
 package bj.taxstamp.payment.request;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,7 +30,7 @@ public class DocumentRequestController {
 
     @GetMapping("/document-types")
     public List<DocumentTypeResponse> documentTypes() {
-        return Arrays.stream(DocumentType.values()).map(DocumentTypeResponse::from).toList();
+        return service.documentTypes().stream().map(DocumentTypeResponse::from).toList();
     }
 
     @PostMapping("/document-requests")

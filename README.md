@@ -129,8 +129,11 @@ conservé).
 ### Règles de gestion → mécanisme
 
 **Montant calculé par le service.** `DocumentType.amountDue` (tarif × copies + 100),
-en entiers (le FCFA n'a pas de centimes). Il est figé sur la demande puis copié sur
-le paiement. Jackson est configuré pour refuser les champs inconnus : un `amount`
+en entiers (le FCFA n'a pas de centimes). Les types d'actes et leurs tarifs sont en
+table `document_type`, alimentée au démarrage par `DocumentTypeSeeder` (idempotent :
+un acte déjà présent n'est pas écrasé). Tarif et montant sont figés sur la demande,
+puis le montant est copié sur le paiement : un changement de tarif ne modifie pas les
+demandes existantes. Un code d'acte inconnu donne un 400 `UNKNOWN_DOCUMENT_TYPE`. Jackson est configuré pour refuser les champs inconnus : un `amount`
 envoyé par le client produit un 400 au lieu d'être ignoré en silence.
 
 **Numéro invalide = aucun débit.** Contrôle `01` + 8 chiffres avant toute écriture et

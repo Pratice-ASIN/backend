@@ -37,6 +37,8 @@ import bj.taxstamp.payment.operator.HmacSignature;
 import bj.taxstamp.payment.payment.Payment;
 import bj.taxstamp.payment.payment.PaymentRepository;
 import bj.taxstamp.payment.payment.ReconciliationService;
+import bj.taxstamp.payment.request.DocumentTypeRepository;
+import bj.taxstamp.payment.request.DocumentTypeSeeder;
 import bj.taxstamp.payment.simulator.OperatorSimulator;
 
 /**
@@ -62,6 +64,10 @@ class PaymentIntegrationTest {
     PaymentRepository payments;
     @Autowired
     ReconciliationService reconciliation;
+    @Autowired
+    DocumentTypeSeeder seeder;
+    @Autowired
+    DocumentTypeRepository documentTypes;
 
     @AfterEach
     void resetSimulator() {
@@ -80,6 +86,30 @@ class PaymentIntegrationTest {
             JsonNode residence = createRequest("alice", "RESIDENCE_CERTIFICATE", 2);
             assertThat(residence.get("amountDue").asLong()).isEqualTo(1100);
             assertThat(residence.get("status").asText()).isEqualTo("UNPAID");
+        }
+
+        @Test
+        void document_types_are_seeded_with_their_price() {
+            Response r = call(HttpMethod.GET, "/api/document-types", "alice", null, null);
+            assertThat(r.status()).isEqualTo(200);
+            assertThat(r.body().findValuesAsText("code"))
+                    .containsExactlyInAnyOrder("BIRTH_CERTIFICATE", "CRIMINAL_RECORD", "RESIDENCE_CERTIFICATE");
+            assertThat(r.body().findValues("unitPrice")).extracting(JsonNode::asLong)
+                    .containsExactlyInAnyOrder(1000L, 1500L, 500L);
+        }
+
+        @Test
+        void seeder_is_idempotent() throws Exception {
+            seeder.run(null);
+            assertThat(documentTypes.count()).isEqualTo(3);
+        }
+
+        @Test
+        void unknown_document_type_rejected() {
+            Response r = call(HttpMethod.POST, "/api/document-requests", "alice", null,
+                    "{\"documentType\":\"PASSPORT\",\"copies\":1}");
+            assertThat(r.status()).isEqualTo(400);
+            assertThat(r.code()).isEqualTo("UNKNOWN_DOCUMENT_TYPE");
         }
 
         @Test

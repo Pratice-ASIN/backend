@@ -31,6 +31,11 @@ public class BusinessError extends RuntimeException {
         return new BusinessError(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", resource + " introuvable");
     }
 
+    public static BusinessError unknownDocumentType(String code) {
+        return new BusinessError(HttpStatus.BAD_REQUEST, "UNKNOWN_DOCUMENT_TYPE",
+                "Type d'acte inconnu : " + code);
+    }
+
     public static BusinessError userNotIdentified() {
         return new BusinessError(HttpStatus.UNAUTHORIZED, "USER_NOT_IDENTIFIED",
                 "En-tête X-User-Id absent ou invalide");

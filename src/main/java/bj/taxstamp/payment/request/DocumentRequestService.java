@@ -15,17 +15,27 @@ import bj.taxstamp.payment.payment.PaymentStatus;
 public class DocumentRequestService {
 
     private final DocumentRequestRepository requests;
+    private final DocumentTypeRepository documentTypes;
     private final PaymentRepository payments;
     private final Clock clock;
 
-    public DocumentRequestService(DocumentRequestRepository requests, PaymentRepository payments, Clock clock) {
+    public DocumentRequestService(DocumentRequestRepository requests, DocumentTypeRepository documentTypes,
+            PaymentRepository payments, Clock clock) {
         this.requests = requests;
+        this.documentTypes = documentTypes;
         this.payments = payments;
         this.clock = clock;
     }
 
+    @Transactional(readOnly = true)
+    public List<DocumentType> documentTypes() {
+        return documentTypes.findAllByOrderByLabelAsc();
+    }
+
     @Transactional
-    public DocumentRequest create(String userId, DocumentType documentType, int copies) {
+    public DocumentRequest create(String userId, String documentTypeCode, int copies) {
+        DocumentType documentType = documentTypes.findById(documentTypeCode)
+                .orElseThrow(() -> BusinessError.unknownDocumentType(documentTypeCode));
         return requests.save(DocumentRequest.create(userId, documentType, copies, clock.instant()));
     }
 
