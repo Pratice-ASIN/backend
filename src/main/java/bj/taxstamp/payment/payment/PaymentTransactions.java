@@ -59,9 +59,11 @@ public class PaymentTransactions {
             }
         }
 
-        payments.findByRequestLock(requestId).ifPresent(active -> {
-            throw conflict(active);
-        });
+        Optional<Payment> active = payments.findByRequestLock(requestId);
+        if (active.isPresent()) {
+            return new PaymentCreation(replayOrConflict(active.get(), userId, requestId, phoneNumber, operator,
+                    idempotencyKey), false);
+        }
 
         Payment payment = Payment.create(request, userId, phoneNumber, operator, idempotencyKey, clock.instant());
         // flush immédiat : la violation de contrainte éventuelle survient ici, pas au commit.
@@ -84,10 +86,8 @@ public class PaymentTransactions {
                 return Optional.of(checkReplay(replay.get(), requestId, phoneNumber, operator));
             }
         }
-        payments.findByRequestLock(requestId).ifPresent(active -> {
-            throw conflict(active);
-        });
-        return Optional.empty();
+        return payments.findByRequestLock(requestId)
+                .map(active -> replayOrConflict(active, userId, requestId, phoneNumber, operator, idempotencyKey));
     }
 
     @Transactional
@@ -123,6 +123,19 @@ public class PaymentTransactions {
     @Transactional(readOnly = true)
     public Payment reload(UUID paymentId) {
         return payments.findById(paymentId).orElseThrow(() -> BusinessError.notFound("Paiement"));
+    }
+
+    /**
+     * Le paiement actif peut être celui d'une requête identique validée entre la
+     * recherche par clé d'idempotence et celle-ci : c'est alors un rejeu, pas un conflit.
+     */
+    private static Payment replayOrConflict(Payment active, String userId, UUID requestId, String phoneNumber,
+                                            MobileOperator operator, String idempotencyKey) {
+        if (idempotencyKey != null && idempotencyKey.equals(active.getIdempotencyKey())
+                && userId.equals(active.getUserId())) {
+            return checkReplay(active, requestId, phoneNumber, operator);
+        }
+        throw conflict(active);
     }
 
     private static Payment checkReplay(Payment existing, UUID requestId, String phoneNumber, MobileOperator operator) {
