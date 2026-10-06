@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: paiement-timbre
+  datasource:
+    # LOCK_TIMEOUT : deux insertions concurrentes sur une même contrainte unique
+    # attendent l'une l'autre au lieu d'échouer immédiatement.
+    url: jdbc:h2:mem:timbre;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create
+    open-in-view: false
+  jackson:
+    deserialization:
+      # Un champ inconnu (ex. "montant" envoyé par l'usager) est refusé, pas ignoré.
+      fail-on-unknown-properties: true
+
+paiement:
+  # Au-delà de ce délai sans résultat, le service interroge l'opérateur.
+  delai-consultation: PT2M
+  # Au-delà de ce délai, le débit encore en attente est annulé chez l'opérateur.
+  delai-expiration: PT10M
+  reconciliation:
+    actif: true
+    intervalle: PT30S
+  # Secrets HMAC partagés avec chaque opérateur (à surcharger par variables d'environnement en prod).
+  secrets-operateurs:
+    MTN: ${SECRET_MTN:secret-mtn-a-changer}
+    MOOV: ${SECRET_MOOV:secret-moov-a-changer}
+    CELTIIS: ${SECRET_CELTIIS:secret-celtiis-a-changer}
+
+simulateur:
+  actif: true
+  # auto : le résultat est renvoyé tout seul après "delai-resultat"
+  # manuel : le résultat est déclenché via POST /simulateur/transactions/{ref}/resultat
+  mode: auto
+  delai-resultat: PT3S
+  # vide = http://localhost:{port du service}
+  url-callback:
+
+---
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/timbre}
+    username: ${DB_USER:timbre}
+    password: ${DB_PASSWORD:timbre}
+  jpa:
+    hibernate:
+      ddl-auto: update
