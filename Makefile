@@ -21,7 +21,7 @@ ps: ## État des conteneurs
 	docker compose ps
 
 db: ## Ouvre un shell psql sur la base
-	docker compose exec postgres psql -U timbre -d timbre
+	docker compose exec postgres psql -U taxstamp -d taxstamp
 
 test: ## Lance les tests (Maven local)
 	mvn test

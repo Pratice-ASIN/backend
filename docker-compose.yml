@@ -2,9 +2,9 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: timbre
-      POSTGRES_USER: ${DB_USER:-timbre}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-timbre}
+      POSTGRES_DB: taxstamp
+      POSTGRES_USER: ${DB_USER:-taxstamp}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-taxstamp}
     ports:
       - "5432:5432"
     volumes:
@@ -22,9 +22,9 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: postgres
-      DB_URL: jdbc:postgresql://postgres:5432/timbre
-      DB_USER: ${DB_USER:-timbre}
-      DB_PASSWORD: ${DB_PASSWORD:-timbre}
+      DB_URL: jdbc:postgresql://postgres:5432/taxstamp
+      DB_USER: ${DB_USER:-taxstamp}
+      DB_PASSWORD: ${DB_PASSWORD:-taxstamp}
       SECRET_MTN: ${SECRET_MTN:-secret-mtn-a-changer}
       SECRET_MOOV: ${SECRET_MOOV:-secret-moov-a-changer}
       SECRET_CELTIIS: ${SECRET_CELTIIS:-secret-celtiis-a-changer}
