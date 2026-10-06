@@ -68,21 +68,26 @@ public class PaiementTransactions {
         return new CreationPaiement(paiements.saveAndFlush(paiement), true);
     }
 
-    /** Appelé après une insertion perdue face à une requête concurrente (nouvelle transaction). */
+    /**
+     * Appelé après une insertion perdue face à une requête concurrente (nouvelle transaction).
+     *
+     * @return le paiement gagnant si la requête est un rejeu (même clé) ; vide si le
+     *         gagnant n'est pas encore visible (transaction concurrente pas encore validée).
+     * @throws ErreurMetier 409 si un autre paiement actif occupe la demande.
+     */
     @Transactional(readOnly = true)
-    public Paiement resoudreApresConflit(String usagerId, UUID demandeId, String telephone, Operateur operateur,
-                                         String cleIdempotence) {
+    public Optional<Paiement> resoudreApresConflit(String usagerId, UUID demandeId, String telephone,
+                                                   Operateur operateur, String cleIdempotence) {
         if (cleIdempotence != null) {
             Optional<Paiement> rejeu = paiements.findByUsagerIdAndCleIdempotence(usagerId, cleIdempotence);
             if (rejeu.isPresent()) {
-                return verifierRejeu(rejeu.get(), demandeId, telephone, operateur);
+                return Optional.of(verifierRejeu(rejeu.get(), demandeId, telephone, operateur));
             }
         }
         paiements.findByDemandeVerrou(demandeId).ifPresent(actif -> {
             throw conflit(actif);
         });
-        throw new ErreurMetier(HttpStatus.CONFLICT, "CONFLIT_CONCURRENT",
-                "Une autre demande de paiement a été traitée au même moment, veuillez réessayer");
+        return Optional.empty();
     }
 
     @Transactional

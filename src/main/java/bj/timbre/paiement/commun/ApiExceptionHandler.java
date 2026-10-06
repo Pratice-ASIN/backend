@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -58,6 +59,10 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> inattendue(Exception e) {
+        if (e instanceof ErrorResponse erreurSpring) {
+            // 404 route inconnue, 405, 415... : on garde le statut prévu par Spring.
+            return ResponseEntity.status(erreurSpring.getStatusCode()).body(erreurSpring.getBody());
+        }
         log.error("Erreur inattendue", e);
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Erreur interne, veuillez réessayer");

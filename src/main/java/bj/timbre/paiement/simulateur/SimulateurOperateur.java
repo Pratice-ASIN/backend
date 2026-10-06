@@ -152,6 +152,22 @@ public class SimulateurOperateur {
         return true;
     }
 
+    /** Fixe l'issue sans envoyer de rappel : simule un rappel perdu en route. */
+    public boolean fixerIssueSansRappel(String reference, boolean succes, String motif) {
+        Transaction t = transactions.get(reference);
+        if (t == null) {
+            return false;
+        }
+        synchronized (t) {
+            if (t.etat != ConsultationOperateur.Etat.EN_ATTENTE) {
+                return false;
+            }
+            t.etat = succes ? ConsultationOperateur.Etat.SUCCES : ConsultationOperateur.Etat.ECHEC;
+            t.motif = succes ? null : motif;
+            return true;
+        }
+    }
+
     /** Renvoie le dernier résultat (simule une relance de l'opérateur, donc un doublon). */
     public boolean renvoyerResultat(String reference) {
         Transaction t = transactions.get(reference);

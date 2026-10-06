@@ -1,12 +1,12 @@
 package bj.timbre.paiement.paiement;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.ConcurrencyFailureException;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +24,8 @@ public class PaiementService {
 
     private static final Logger log = LoggerFactory.getLogger(PaiementService.class);
     private static final int TAILLE_MAX_CLE = 100;
+    private static final int ESSAIS_RESOLUTION = 20;
+    private static final long PAUSE_RESOLUTION_MS = 50;
 
     private final PaiementTransactions transactions;
     private final PaiementRepository paiements;
@@ -66,10 +68,11 @@ public class PaiementService {
         PaiementTransactions.CreationPaiement creation;
         try {
             creation = transactions.creer(usagerId, demandeId, telephone, operateur, cle);
-        } catch (DataIntegrityViolationException | ConcurrencyFailureException courseConcurrente) {
+        } catch (DataAccessException courseConcurrente) {
+            // Contrainte unique violée (ou verrou) : une requête concurrente a gagné.
+            // Aucun débit n'a été demandé par ce fil d'exécution.
             log.info("Requête de paiement concurrente détectée pour la demande {}", demandeId);
-            Paiement existant = transactions.resoudreApresConflit(usagerId, demandeId, telephone, operateur, cle);
-            return new Lancement(existant, false);
+            return new Lancement(attendreGagnant(usagerId, demandeId, telephone, operateur, cle), false);
         }
 
         if (!creation.nouveau()) {
@@ -77,6 +80,28 @@ public class PaiementService {
         }
         demanderDebit(creation.paiement());
         return new Lancement(transactions.recharger(creation.paiement().getId()), true);
+    }
+
+    /**
+     * Selon la base, la violation peut être signalée avant que la transaction gagnante
+     * soit validée : on lui laisse quelques instants pour devenir visible.
+     */
+    private Paiement attendreGagnant(String usagerId, UUID demandeId, String telephone, Operateur operateur,
+                                     String cle) {
+        for (int essai = 0; essai < ESSAIS_RESOLUTION; essai++) {
+            Optional<Paiement> gagnant = transactions.resoudreApresConflit(usagerId, demandeId, telephone, operateur, cle);
+            if (gagnant.isPresent()) {
+                return gagnant.get();
+            }
+            try {
+                Thread.sleep(PAUSE_RESOLUTION_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        throw new ErreurMetier(HttpStatus.CONFLICT, "CONFLIT_CONCURRENT",
+                "Une autre demande de paiement a été traitée au même moment, veuillez réessayer");
     }
 
     private void demanderDebit(Paiement p) {
