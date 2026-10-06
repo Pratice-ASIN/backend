@@ -51,6 +51,12 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Client HTTP des tests : lit correctement les réponses 401 aux requêtes POST. -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
