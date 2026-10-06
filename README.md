@@ -27,6 +27,17 @@ mvn spring-boot:run   # API sur http://localhost:8080 (base H2 en mémoire)
 Avec PostgreSQL : `mvn spring-boot:run -Dspring-boot.run.profiles=postgres`
 (variables `DB_URL`, `DB_USER`, `DB_PASSWORD`).
 
+Avec Docker (application + PostgreSQL 16, seul Docker est requis) :
+
+```bash
+make up      # construit l'image et démarre la pile sur http://localhost:8080
+make logs    # logs de l'application
+make db      # shell psql sur la base
+make down    # arrêt (données conservées) ; `make clean` supprime aussi le volume
+```
+
+`make help` liste toutes les commandes.
+
 Les secrets partagés avec les opérateurs se surchargent par variables
 d'environnement : `SECRET_MTN`, `SECRET_MOOV`, `SECRET_CELTIIS`.
 
